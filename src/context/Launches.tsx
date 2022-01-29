@@ -1,5 +1,5 @@
-import React from 'react'
-
+import React, { Fragment } from 'react'
+import { Button } from 'react-bootstrap'
 import { useQuery, gql } from '@apollo/client'
 
 interface Launch {
@@ -12,37 +12,55 @@ interface LaunchesData {
     launches: Launch[]
 }
 
-const GET_LAUNCHES = gql`
-    query {
-            launches (limit: 10) {
-            id
-            mission_name
-            launch_date_local
-            rocket {
-                rocket_name
-            }
-        }
-    } 
-`
 
-export const Launches: React.FC = () => {
-    const { loading, data } = useQuery<LaunchesData>(GET_LAUNCHES);
+interface ILanchesRequest {
+    limit?: number
+    offset?: number
+}
+
+let loadedLaunches: Array<Launch> = [];
+
+export const Launches: React.FC<ILanchesRequest> = ({ limit, offset }) => {
+    const { loading, data } = useQuery<LaunchesData>(gql`
+        query {
+                launches (limit: ${limit}, offset: ${offset}) {
+                id
+                mission_name
+                launch_date_local
+                rocket {
+                    rocket_name
+                }
+            }
+        } 
+    `);
+
+    if (data !== undefined) {
+        loadedLaunches.push(...data.launches);
+    }
 
     return (
         <div>
             <h3>Most recent launches</h3>
             {loading ? (<p>Loading...</p>
             ) : (
-                <div>
-                    {data && data?.launches.map(launch => (
+                <Fragment>
+                    {loadedLaunches.map(launch => (
                         <div>
                             <h5>{launch.id}</h5>
                             <p>{launch.mission_name}</p>
                             <p>{launch.launch_date_local}</p>
                         </div>
                     ))}
-                </div>
+                    <Button variant="outline-info" onClick={() => {
+
+                    }}>Load more...</Button>{' '}
+                </Fragment>
             )}
         </div>
     )
+}
+
+Launches.defaultProps = {
+    limit: 10,
+    offset: 0
 }
